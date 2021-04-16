@@ -1,0 +1,18 @@
+{
+  "clientid": "oppo",
+  "timestamp": 1617971674,
+  "_type": "location",
+  "acc": 15,
+  "alt": 120,
+  "batt": 43,
+  "bs": 0,
+  "conn": "w",
+  "created_at": 1617971674,
+  "lat": 35.659409,
+  "lon": 139.3813456,
+  "t": "u",
+  "tid": "po",
+  "tst": 1617971673,
+  "vac": 3,
+  "vel": 0
+}
