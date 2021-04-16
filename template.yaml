@@ -11,7 +11,7 @@ Globals:
     Timeout: 3
 
 Resources:
-  Qiitaf52c0841775f9fc4d0c5OwntracksFunction:
+  OwntracksFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: qiita_f52c0841775f9fc4d0c5_owntracks/
@@ -22,9 +22,9 @@ Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  Qiitaf52c0841775f9fc4d0c5OwntracksFunction:
-    Description: "Hello World Lambda Function ARN"
-    Value: !GetAtt Qiitaf52c0841775f9fc4d0c5OwntracksFunction.Arn
-  Qiitaf52c0841775f9fc4d0c5OwntracksFunctionIamRole:
-    Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt Qiitaf52c0841775f9fc4d0c5OwntracksFunctionRole.Arn
+  OwntracksFunction:
+    Description: "Owntracks to Timestream Lambda Function ARN"
+    Value: !GetAtt OwntracksFunction.Arn
+  OwntracksFunctionIamRole:
+    Description: "Implicit IAM Role created for Owntracks to Timestream function"
+    Value: !GetAtt OwntracksFunctionRole.Arn
