@@ -27,4 +27,4 @@ Outputs:
     Value: !GetAtt Qiitaf52c0841775f9fc4d0c5OwntracksFunction.Arn
   Qiitaf52c0841775f9fc4d0c5OwntracksFunctionIamRole:
     Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt Qiitaf52c0841775f9fc4d0c5OwntracksFunctionIamRole.Arn
+    Value: !GetAtt Qiitaf52c0841775f9fc4d0c5OwntracksFunctionRole.Arn
