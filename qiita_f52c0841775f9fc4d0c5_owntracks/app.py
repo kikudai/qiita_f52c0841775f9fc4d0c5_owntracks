@@ -1,32 +1,29 @@
+# Owntracks のテレメトリを Amazon Timestream に格納する。
+#
+# Database や Table がある前提で処理する。
+# なかった場合、 ResourceNotFoundException で検知して Database や Table を作成。
+
 import boto3
 import datetime
-from botocore.exceptions import ClientError
 import sys
+from botocore.exceptions import ClientError
 
 
-timestream_write = boto3.client('timestream-write', region_name='us-east-1')
+__author__ = 'kikudai'
+
+
+timestream_write = boto3.client(
+    'timestream-write',
+    region_name='us-east-1'
+)
+
 
 DATABASE_NAME = 'Qiita_f52c0841775f9fc4d0c5_Owntracks'
-PERIOD_HOURS = 24 * 12
-PERIOD_DAYS = 365 * 200
 
-dt_now = datetime.datetime.now()
-dt = dt_now.strftime('%Y/%m/%d %H:%M:%S')
-
-tags = [
-    {
-        'Key': 'create_user',
-        'Value': 'lambda_function'
-    },
-    {
-        'Key': 'create_date',
-        'Value': dt
-    },
-    {
-        'Key': 'qiita',
-        'Value': 'f52c0841775f9fc4d0c5'
-    },
-]
+# 1時間
+PERIOD_HOURS = 1
+# 200年
+PERIOD_DAYS: int = 365 * 200
 
 field_type = dict(
     _type='VARCHAR',
@@ -42,34 +39,65 @@ field_type = dict(
     tid='VARCHAR',
     tst='BIGINT',
     vac='BIGINT',
-    vel='BIGINT'
+    vel='BIGINT',
+    event_t='BIGINT'
 )
 
 
-def ts_create_database(database=DATABASE_NAME):
+def get_tags():
+    """
+    Database, Table作成のときに付けるタグ
+    一律デフォルトでタグ付けしたいものに利用
+    """
+    dt_now = datetime.datetime.now()
+    dt = dt_now.strftime('%Y/%m/%d %H:%M:%S')
+
+    return [
+        {
+            'Key': 'create_user',
+            'Value': 'lambda_function'
+        },
+        {
+            'Key': 'create_date',
+            'Value': dt
+        },
+        {
+            'Key': 'qiita',
+            'Value': 'f52c0841775f9fc4d0c5'
+        },
+    ]
+
+
+def ts_create_database():
+    """
+    Database を作成
+    実装上は Database がまだ作成されていないときにのみ処理
+    """
     try:
         response = timestream_write.create_database(
-            DatabaseName=database,
-            Tags=tags
+            DatabaseName=DATABASE_NAME,
+            Tags=get_tags()
         )
-        status = response['ResponseMetadata']['HTTPStatusCode']
-        print(f'CreateDatabase {database} Status: {status}')
 
     except Exception as err:
         print("Error:", err)
         sys.exit(1)
 
+    status = response['ResponseMetadata']['HTTPStatusCode']
+    print(f'CreateDatabase {DATABASE_NAME} Status: {status}')
 
-def is_database(database=DATABASE_NAME):
+
+def is_database() -> bool:
+    """
+    データベース存在フラグ
+    ResourceNotFoundException = データベースが存在しない
+    と限らないと考えたためこのフラグを用意
+    """
+    response = None
     try:
         response = timestream_write.describe_database(
-            DatabaseName=database
+            DatabaseName=DATABASE_NAME
         )
-        status = response['ResponseMetadata']['HTTPStatusCode']
-        print(f'DescribeDatabase {database} Status: {status}')
-
-        return response['Database']['DatabaseName'] == database
-
     except ClientError as err:
         if err.response['Error']['Code'] == 'ResourceNotFoundException':
             return False
@@ -77,17 +105,24 @@ def is_database(database=DATABASE_NAME):
         print("Error:", err)
         sys.exit(1)
 
+    status = response['ResponseMetadata']['HTTPStatusCode']
+    print(f'DescribeDatabase {DATABASE_NAME} Status: {status}')
 
-def is_table(table, database=DATABASE_NAME):
+    return response['Database']['DatabaseName'] == DATABASE_NAME
+
+
+def is_table(table) -> bool:
+    """
+    テーブル存在フラグ
+    ResourceNotFoundException = テーブルが存在しない
+    と限らないと考えたためこのフラグを用意
+    """
+    response = None
     try:
         response = timestream_write.describe_table(
-            DatabaseName=database,
+            DatabaseName=DATABASE_NAME,
             TableName=table
         )
-        status = response['ResponseMetadata']['HTTPStatusCode']
-        print(f'DescribeTable {table} Status: {status}')
-
-        return response['Table']['TableName'] == table
 
     except ClientError as err:
         if err.response['Error']['Code'] == 'ResourceNotFoundException':
@@ -97,20 +132,28 @@ def is_table(table, database=DATABASE_NAME):
         print("Error:", err)
         sys.exit(1)
 
+    status = response['ResponseMetadata']['HTTPStatusCode']
+    print(f'DescribeTable {table} Status: {status}')
 
-def ts_create_table(table, database=DATABASE_NAME):
+    return response['Table']['TableName'] == table
+
+
+def ts_create_table(table):
+    """
+    Table を作成
+    実装上は Table がまだ作成されていないときにのみ処理
+    """
+    response = None
     try:
         response = timestream_write.create_table(
-            DatabaseName=database,
+            DatabaseName=DATABASE_NAME,
             TableName=table,
             RetentionProperties={
                 'MemoryStoreRetentionPeriodInHours': PERIOD_HOURS,
                 'MagneticStoreRetentionPeriodInDays': PERIOD_DAYS
             },
-            Tags=tags
+            Tags=get_tags()
         )
-        status = response['ResponseMetadata']['HTTPStatusCode']
-        print(f'CreateTable {table} Status: {status}')
 
     except ClientError as err:
         if err.response['Error']['Code'] == 'ResourceNotFoundException':
@@ -118,21 +161,33 @@ def ts_create_table(table, database=DATABASE_NAME):
             if not is_database():
                 ts_create_database()
                 ts_create_table(table)
+            else:
+                print("Databaseはあるが、未知の ResourceNotFoundException")
+                print("Error:", err)
+                sys.exit(1)
+        else:
+            print("Error:", err)
+            sys.exit(1)
     except Exception as err:
         print("Error:", err)
         sys.exit(1)
+
+    status = response['ResponseMetadata']['HTTPStatusCode']
+    print(f'CreateTable {table} Status: {status}')
 
 
 def prepare_record(measure_name, measure_value, measure_value_type):
     return {
         'MeasureName': measure_name,
-        'MeasureValue': str(measure_value),
+        'MeasureValue': measure_value,
         'MeasureValueType': measure_value_type,
     }
 
 
 def create_records(event):
-
+    """
+    event （MQTT テレメトリ）を Timestream 用レコードに変換
+    """
     _table_name = None
     _common_attributes = {
         'Dimensions': [
@@ -142,20 +197,19 @@ def create_records(event):
                 'DimensionValueType': 'VARCHAR'
             }
         ],
-        'Time': str(event['timestamp']),
+        'Time': str(event['tst']),
         'TimeUnit': 'SECONDS'
     }
     _records = []
 
     print('------ payload: ', event)
     for k, v in event.items():
-        # clientid, timestamp は _common_attributes で利用済みのため捨てる
-        if k == 'clientid' or k == 'timestamp':
+        # clientid, tst は _common_attributes で利用済みのため捨てる
+        if k == 'clientid' or k == 'tst':
             continue
 
         if k == '_type':
             _table_name = v
-            ts_create_table(_table_name)
         else:
             _records.append(
                 prepare_record(k, str(v), field_type.get(k))
@@ -166,26 +220,39 @@ def create_records(event):
     return _table_name, _common_attributes, _records
 
 
-def ts_write_records(event, table, common_attributes, records, database=DATABASE_NAME):
+def ts_write_records(event, table, common_attributes, records):
+    """
+    IoT Core より連携される event （MQTT テレメトリ）を書き込む
+    """
+    response = None
     try:
         response = timestream_write.write_records(
-            DatabaseName=database,
+            DatabaseName=DATABASE_NAME,
             TableName=table,
             CommonAttributes=common_attributes,
             Records=records
         )
-        status = response['ResponseMetadata']['HTTPStatusCode']
-        print(f'Processed {len(records)} records. WriteRecords Status: {status}')
 
     except ClientError as err:
         if err.response['Error']['Code'] == 'ResourceNotFoundException':
             # テーブルがない場合、テーブル作成してデータ書込
             if not is_table(table):
+                print(f'ts_write_records: Table: {table} に書込しようとしたところ存在しないため create_table します')
                 ts_create_table(table)
                 ts_write_records(event, table, common_attributes, records)
+            else:
+                print(f'Table: {table} はあるが、未知の ResourceNotFoundException')
+                print("Error:", err)
+                sys.exit(1)
+        else:
+            print("Error:", err)
+            sys.exit(1)
     except Exception as err:
         print("Error:", err)
         sys.exit(1)
+
+    status = response['ResponseMetadata']['HTTPStatusCode']
+    print(f'Processed {len(records)} records. WriteRecords Status: {status}')
 
 
 def lambda_handler(event, context):

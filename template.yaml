@@ -8,7 +8,7 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 30
 
 Resources:
   OwntracksFunction:
@@ -17,6 +17,10 @@ Resources:
       CodeUri: qiita_f52c0841775f9fc4d0c5_owntracks/
       Handler: app.lambda_handler
       Runtime: python3.7
+      MemorySize: 256
+      Policies:
+        # Give Timestream Full Access to your Lambda Function
+        - AmazonTimestreamFullAccess
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
