@@ -9,7 +9,7 @@ import sys
 from botocore.exceptions import ClientError
 
 
-__author__ = 'kikudai'
+__author__: str = 'kikudai'
 
 
 timestream_write = boto3.client(
@@ -171,9 +171,9 @@ def ts_create_table(table):
     except Exception as err:
         print("Error:", err)
         sys.exit(1)
-
-    status = response['ResponseMetadata']['HTTPStatusCode']
-    print(f'CreateTable {table} Status: {status}')
+    else:
+        status = response['ResponseMetadata']['HTTPStatusCode']
+        print(f'CreateTable {table} Status: {status}')
 
 
 def prepare_record(measure_name, measure_value, measure_value_type):
@@ -250,9 +250,9 @@ def ts_write_records(event, table, common_attributes, records):
     except Exception as err:
         print("Error:", err)
         sys.exit(1)
-
-    status = response['ResponseMetadata']['HTTPStatusCode']
-    print(f'Processed {len(records)} records. WriteRecords Status: {status}')
+    else:
+        status = response['ResponseMetadata']['HTTPStatusCode']
+        print(f'Processed {len(records)} records. WriteRecords Status: {status}')
 
 
 def lambda_handler(event, context):
