@@ -40,7 +40,8 @@ field_type = dict(
     tst='BIGINT',
     vac='BIGINT',
     vel='BIGINT',
-    event_t='BIGINT'
+    event_t='BIGINT',
+    clientid='VARCHAR'
 )
 
 
@@ -176,6 +177,14 @@ def ts_create_table(table):
         print(f'CreateTable {table} Status: {status}')
 
 
+def prepare_common_attributes(name, Value, dimensionValueType):
+    return {
+        'Name': name,
+        'Value': Value,
+        'DimensionValueType': dimensionValueType
+    }
+
+
 def prepare_record(measure_name, measure_value, measure_value_type):
     return {
         'MeasureName': measure_name,
@@ -190,13 +199,7 @@ def create_records(event):
     """
     _table_name = None
     _common_attributes = {
-        'Dimensions': [
-            {
-                'Name': 'clientid',
-                'Value': event['clientid'],
-                'DimensionValueType': 'VARCHAR'
-            }
-        ],
+        'Dimensions': [],
         'Time': str(event['tst']),
         'TimeUnit': 'SECONDS'
     }
@@ -204,17 +207,26 @@ def create_records(event):
 
     print('------ payload: ', event)
     for k, v in event.items():
-        # clientid, tst は _common_attributes で利用済みのため捨てる
-        if k == 'clientid' or k == 'tst':
+        # tst は _common_attributes で利用済みのため捨てる
+        if k == 'tst':
+            continue
+
+        # clientid, t _common_attributes で利用
+        if k == 'clientid' or k == 't':
+            _common_attributes['Dimensions'].append(
+                prepare_common_attributes(k, str(v), field_type.get(k))
+            )
             continue
 
         if k == '_type':
             _table_name = v
-        else:
-            _records.append(
-                prepare_record(k, str(v), field_type.get(k))
-            )
+            continue
 
+        _records.append(
+            prepare_record(k, str(v), field_type.get(k))
+        )
+
+    print('------ _common_attributes: ', _common_attributes)
     print('------ records: ', _records)
 
     return _table_name, _common_attributes, _records
