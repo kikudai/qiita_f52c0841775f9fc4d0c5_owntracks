@@ -18,10 +18,10 @@ timestream_write = boto3.client(
 )
 
 
-DATABASE_NAME = 'Qiita_f52c0841775f9fc4d0c5_Owntracks'
+DATABASE_NAME = 'qiita_f52c0841775f9fc4d0c5_owntracks'
 
 # 1時間
-PERIOD_HOURS = 1
+PERIOD_HOURS: int = 1
 # 200年
 PERIOD_DAYS: int = 365 * 200
 
