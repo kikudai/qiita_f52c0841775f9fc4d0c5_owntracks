@@ -105,11 +105,11 @@ def is_database() -> bool:
     except Exception as err:
         print("Error:", err)
         sys.exit(1)
+    else:
+        status = response['ResponseMetadata']['HTTPStatusCode']
+        print(f'DescribeDatabase {DATABASE_NAME} Status: {status}')
 
-    status = response['ResponseMetadata']['HTTPStatusCode']
-    print(f'DescribeDatabase {DATABASE_NAME} Status: {status}')
-
-    return response['Database']['DatabaseName'] == DATABASE_NAME
+        return response['Database']['DatabaseName'] == DATABASE_NAME
 
 
 def is_table(table) -> bool:
@@ -132,11 +132,11 @@ def is_table(table) -> bool:
     except Exception as err:
         print("Error:", err)
         sys.exit(1)
+    else:
+        status = response['ResponseMetadata']['HTTPStatusCode']
+        print(f'DescribeTable {table} Status: {status}')
 
-    status = response['ResponseMetadata']['HTTPStatusCode']
-    print(f'DescribeTable {table} Status: {status}')
-
-    return response['Table']['TableName'] == table
+        return response['Table']['TableName'] == table
 
 
 def ts_create_table(table):
